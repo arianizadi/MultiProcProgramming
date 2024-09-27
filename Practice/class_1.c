@@ -18,11 +18,17 @@ int main(int argc, char **argv) {
          world_rank, world_size);
 
   if (world_rank == 0) {
-    int j;
-    MPI_Status status;
+    int j[world_size - 1];
+    MPI_Request request[world_size - 1];
+    MPI_Status status[world_size - 1];
     for (int k = 1; k < world_size; k++) {
-      MPI_Recv(&j, 1, MPI_INT, k, 0, MPI_COMM_WORLD, &status);
-      printf("Received from processor %d: %d\n", k, j);
+      MPI_Irecv(&j[k - 1], 1, MPI_INT, MPI_ANY_SOURCE, 0, MPI_COMM_WORLD,
+                &request[k - 1]);
+    }
+    MPI_Waitall(world_size - 1, request, status);
+    for (int k = 1; k < world_size; k++) {
+      printf("Received from processor %d: %d\n", status[k - 1].MPI_SOURCE,
+             j[k - 1]);
     }
   } else {
     MPI_Send(&world_rank, 1, MPI_INT, 0, 0, MPI_COMM_WORLD);

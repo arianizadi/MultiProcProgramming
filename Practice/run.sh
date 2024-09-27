@@ -25,5 +25,7 @@ read -p "Enter the number of processors to use: " num_procs
 # Prompt the user to enter additional arguments
 read -p "Enter any additional arguments to pass to the executable: " args
 
+echo -e "\n"
+
 # Run the selected executable with mpirun, specified number of processors, and additional arguments
 mpirun -np "$num_procs" --oversubscribe "$exec_file" $args
