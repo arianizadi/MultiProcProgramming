@@ -109,4 +109,6 @@ int main(int argc, char *argv[]) {
   if (rank == 0) {
     printf("Time taken: %f seconds\n", cpu_time_used);
   }
+
+  return 0;
 }
