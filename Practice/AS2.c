@@ -1,3 +1,4 @@
+#include <mpi.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
@@ -46,9 +47,24 @@ int main(int argc, char *argv[]) {
 
   max = 256;
 
-  f = fopen(argv[8], "wb");
-  fprintf(f, "P6\n%d %d\n255\n", disp_width, disp_height);
-  for (y = 0; y < disp_height; y++) {
+  MPI_Init(&argc, &argv);
+  int rank, size;
+  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+  MPI_Comm_size(MPI_COMM_WORLD, &size);
+
+  int strip_height = disp_height / size;
+  int start_y = rank * strip_height;
+  int end_y = (rank == size - 1) ? disp_height : start_y + strip_height;
+
+  unsigned char *strip = (unsigned char *)malloc(3 * disp_width * strip_height *
+                                                 sizeof(unsigned char));
+  unsigned char *image = NULL;
+  if (rank == 0) {
+    image = (unsigned char *)malloc(3 * disp_width * disp_height *
+                                    sizeof(unsigned char));
+  }
+
+  for (y = start_y; y < end_y; y++) {
     for (x = 0; x < disp_width; x++) {
       creal = real_min + ((float)x * scale_real);
       cimag = imag_min + ((float)y * scale_imag);
@@ -67,14 +83,30 @@ int main(int argc, char *argv[]) {
         lengthsq = temp + temp2;
         count++;
       } while ((lengthsq < 4.0) && (count < max));
-      fputc(map[0][count], f);
-      fputc(map[1][count], f);
-      fputc(map[2][count], f);
+      strip[3 * ((y - start_y) * disp_width + x) + 0] = map[0][count];
+      strip[3 * ((y - start_y) * disp_width + x) + 1] = map[1][count];
+      strip[3 * ((y - start_y) * disp_width + x) + 2] = map[2][count];
     }
   }
-  fclose(f);
+
+  MPI_Gather(strip, 3 * disp_width * strip_height, MPI_UNSIGNED_CHAR, image,
+             3 * disp_width * strip_height, MPI_UNSIGNED_CHAR, 0,
+             MPI_COMM_WORLD);
+
+  if (rank == 0) {
+    f = fopen(argv[8], "wb");
+    fprintf(f, "P6\n%d %d\n255\n", disp_width, disp_height);
+    fwrite(image, 3, disp_width * disp_height, f);
+    fclose(f);
+    free(image);
+  }
+
+  free(strip);
+  MPI_Finalize();
 
   end_time = clock();
   cpu_time_used = ((double)(end_time - start_time)) / CLOCKS_PER_SEC;
-  printf("Time taken: %f seconds\n", cpu_time_used);
+  if (rank == 0) {
+    printf("Time taken: %f seconds\n", cpu_time_used);
+  }
 }
