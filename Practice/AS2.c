@@ -1,7 +1,13 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 
 int main(int argc, char *argv[]) {
+  clock_t start_time, end_time;
+  double cpu_time_used;
+
+  start_time = clock();
+
   int disp_width, disp_height;
   float real_min, real_max, imag_min, imag_max, scale_real, scale_imag;
   FILE *f;
@@ -40,8 +46,8 @@ int main(int argc, char *argv[]) {
 
   max = 256;
 
-  f = fopen(argv[8], "w");
-  fprintf(f, "P3\n%d %d\n255\n", disp_width, disp_height);
+  f = fopen(argv[8], "wb");
+  fprintf(f, "P6\n%d %d\n255\n", disp_width, disp_height);
   for (y = 0; y < disp_height; y++) {
     for (x = 0; x < disp_width; x++) {
       creal = real_min + ((float)x * scale_real);
@@ -61,9 +67,14 @@ int main(int argc, char *argv[]) {
         lengthsq = temp + temp2;
         count++;
       } while ((lengthsq < 4.0) && (count < max));
-      fprintf(f, "%d %d %d ", map[0][count], map[1][count], map[2][count]);
+      fputc(map[0][count], f);
+      fputc(map[1][count], f);
+      fputc(map[2][count], f);
     }
-    fprintf(f, "\n");
   }
   fclose(f);
+
+  end_time = clock();
+  cpu_time_used = ((double)(end_time - start_time)) / CLOCKS_PER_SEC;
+  printf("Time taken: %f seconds\n", cpu_time_used);
 }
