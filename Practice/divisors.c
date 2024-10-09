@@ -47,26 +47,28 @@ int main(int argc, char **argv) {
   int *recv_counts = NULL;
   int *displs = NULL;
 
-  if (world_rank == 0) {
+  if (world_rank != 0) {
+    MPI_Send(&local_count, 1, MPI_INT, 0, 0, MPI_COMM_WORLD);
+    MPI_Send(local_divisors, local_count, MPI_INT, 0, 0, MPI_COMM_WORLD);
+  } else {
     all_divisors = (int *)malloc(num * sizeof(int));
     recv_counts = (int *)malloc(world_size * sizeof(int));
     displs = (int *)malloc(world_size * sizeof(int));
-  }
 
-  MPI_Gather(&local_count, 1, MPI_INT, recv_counts, 1, MPI_INT, 0,
-             MPI_COMM_WORLD);
-
-  if (world_rank == 0) {
+    recv_counts[0] = local_count;
     displs[0] = 0;
-    for (int i = 1; i < world_size; i++) {
-      displs[i] = displs[i - 1] + recv_counts[i - 1];
+    for (int i = 0; i < local_count; i++) {
+      all_divisors[i] = local_divisors[i];
     }
-  }
 
-  MPI_Gatherv(local_divisors, local_count, MPI_INT, all_divisors, recv_counts,
-              displs, MPI_INT, 0, MPI_COMM_WORLD);
+    for (int i = 1; i < world_size; i++) {
+      MPI_Recv(&recv_counts[i], 1, MPI_INT, i, 0, MPI_COMM_WORLD,
+               MPI_STATUS_IGNORE);
+      displs[i] = displs[i - 1] + recv_counts[i - 1];
+      MPI_Recv(all_divisors + displs[i], recv_counts[i], MPI_INT, i, 0,
+               MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+    }
 
-  if (world_rank == 0) {
     printf("All divisors of %d: ", num);
     for (int i = 0; i < displs[world_size - 1] + recv_counts[world_size - 1];
          i++) {

@@ -52,6 +52,8 @@ int main(int argc, char *argv[]) {
   MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   MPI_Comm_size(MPI_COMM_WORLD, &size);
 
+  printf("Processor %d of %d\n", rank, size);
+
   int strip_height = disp_height / size;
   int start_y = rank * strip_height;
   int end_y = (rank == size - 1) ? disp_height : start_y + strip_height;
@@ -88,6 +90,8 @@ int main(int argc, char *argv[]) {
       strip[3 * ((y - start_y) * disp_width + x) + 2] = map[2][count];
     }
   }
+
+  printf("Processor %d done\n", rank);
 
   MPI_Gather(strip, 3 * disp_width * strip_height, MPI_UNSIGNED_CHAR, image,
              3 * disp_width * strip_height, MPI_UNSIGNED_CHAR, 0,
