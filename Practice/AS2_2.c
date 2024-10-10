@@ -1,6 +1,7 @@
 #include <mpi.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <time.h>
 
 int main(int argc, char *argv[]) {
@@ -85,9 +86,17 @@ int main(int argc, char *argv[]) {
       strip[3 * x + 1] = map[1][count];
       strip[3 * x + 2] = map[2][count];
     }
-    MPI_Gather(strip, 3 * disp_width, MPI_UNSIGNED_CHAR,
-               image + 3 * disp_width * y, 3 * disp_width, MPI_UNSIGNED_CHAR, 0,
-               MPI_COMM_WORLD);
+
+    if (rank == 0) {
+      // Receive strips from other processors
+      memcpy(image + 3 * disp_width * y, strip, 3 * disp_width);
+      for (int src = 1; src < size; src++) {
+        MPI_Recv(image + 3 * disp_width * (y + src), 3 * disp_width,
+                 MPI_UNSIGNED_CHAR, src, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+      }
+    } else {
+      MPI_Send(strip, 3 * disp_width, MPI_UNSIGNED_CHAR, 0, 0, MPI_COMM_WORLD);
+    }
   }
 
   printf("Processor %d done\n", rank);
