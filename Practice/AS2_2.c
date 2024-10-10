@@ -64,12 +64,10 @@ int main(int argc, char *argv[]) {
 
   printf("Processor %d of %d\n", proc_rank, world_size);
 
-  unsigned char *allocation =
-      (unsigned char *)malloc(3 * disp_width * sizeof(unsigned char));
+  unsigned char *allocation = malloc(3 * disp_width * sizeof(unsigned char));
   unsigned char *image = NULL;
   if (proc_rank == 0) {
-    image = (unsigned char *)malloc(3 * disp_width * disp_height *
-                                    sizeof(unsigned char));
+    image = malloc(3 * disp_width * disp_height * sizeof(unsigned char));
   }
 
   for (y = proc_rank; y < disp_height; y += world_size) {

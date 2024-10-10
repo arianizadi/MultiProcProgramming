@@ -75,12 +75,11 @@ int main(int argc, char *argv[]) {
     end_y = start_y + (disp_height / world_size);
   }
 
-  unsigned char *allocation = (unsigned char *)malloc(
+  unsigned char *allocation = malloc(
       3 * disp_width * (disp_height / world_size) * sizeof(unsigned char));
   unsigned char *final_image;
   if (proc_rank == 0) {
-    final_image = (unsigned char *)malloc(3 * disp_width * disp_height *
-                                          sizeof(unsigned char));
+    final_image = malloc(3 * disp_width * disp_height * sizeof(unsigned char));
   }
 
   for (y = start_y; y < end_y; y++) {
@@ -111,8 +110,7 @@ int main(int argc, char *argv[]) {
   printf("Processor %d done\n", proc_rank);
 
   if (proc_rank == 0) {
-    final_image = (unsigned char *)malloc(3 * disp_width * disp_height *
-                                          sizeof(unsigned char));
+    final_image = malloc(3 * disp_width * disp_height * sizeof(unsigned char));
   }
 
   if (proc_rank == 0) {
