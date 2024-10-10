@@ -37,7 +37,6 @@ int main(int argc, char *argv[]) {
     exit(1);
   }
 
-  /* Decode arguments */
   disp_width = atoi(argv[1]);
   disp_height = atoi(argv[2]);
 
@@ -46,7 +45,6 @@ int main(int argc, char *argv[]) {
   imag_min = atof(argv[5]);
   imag_max = atof(argv[6]);
 
-  /* Load the required colour map file */
   f = fopen(argv[7], "r");
   for (i = 0; i < 257; i++) {
     fgets(str, 1000, f);
@@ -54,7 +52,6 @@ int main(int argc, char *argv[]) {
   }
   fclose(f);
 
-  /* Compute scaling factors */
   scale_real = (real_max - real_min) / disp_width;
   scale_imag = (imag_max - imag_min) / disp_height;
 
