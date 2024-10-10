@@ -67,21 +67,20 @@ int main(int argc, char *argv[]) {
 
   printf("Processor %d of %d\n", proc_rank, world_size);
 
-  int allocation_height = disp_height / world_size;
-  int start_y = proc_rank * allocation_height;
+  int start_y = proc_rank * (disp_height / world_size);
   int end_y = 0;
   if (proc_rank == world_size - 1) {
     end_y = disp_height;
   } else {
-    end_y = start_y + allocation_height;
+    end_y = start_y + (disp_height / world_size);
   }
 
   unsigned char *allocation = (unsigned char *)malloc(
-      3 * disp_width * allocation_height * sizeof(unsigned char));
-  unsigned char *image = NULL;
+      3 * disp_width * (disp_height / world_size) * sizeof(unsigned char));
+  unsigned char *final_image;
   if (proc_rank == 0) {
-    image = (unsigned char *)malloc(3 * disp_width * disp_height *
-                                    sizeof(unsigned char));
+    final_image = (unsigned char *)malloc(3 * disp_width * disp_height *
+                                          sizeof(unsigned char));
   }
 
   for (y = start_y; y < end_y; y++) {
@@ -112,29 +111,30 @@ int main(int argc, char *argv[]) {
   printf("Processor %d done\n", proc_rank);
 
   if (proc_rank == 0) {
-    image = (unsigned char *)malloc(3 * disp_width * disp_height *
-                                    sizeof(unsigned char));
+    final_image = (unsigned char *)malloc(3 * disp_width * disp_height *
+                                          sizeof(unsigned char));
   }
 
   if (proc_rank == 0) {
-    memcpy(image, allocation,
-           3 * disp_width * allocation_height * sizeof(unsigned char));
+    memcpy(final_image, allocation,
+           3 * disp_width * (disp_height / world_size) * sizeof(unsigned char));
     for (int source = 1; source < world_size; source++) {
-      MPI_Recv(image + source * 3 * disp_width * allocation_height,
-               3 * disp_width * allocation_height, MPI_UNSIGNED_CHAR, source, 0,
-               MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+      MPI_Recv(final_image +
+                   source * 3 * disp_width * (disp_height / world_size),
+               3 * disp_width * (disp_height / world_size), MPI_UNSIGNED_CHAR,
+               source, 0, MPI_COMM_WORLD, 0);
     }
   } else {
-    MPI_Send(allocation, 3 * disp_width * allocation_height, MPI_UNSIGNED_CHAR,
-             0, 0, MPI_COMM_WORLD);
+    MPI_Send(allocation, 3 * disp_width * (disp_height / world_size),
+             MPI_UNSIGNED_CHAR, 0, 0, MPI_COMM_WORLD);
   }
 
   if (proc_rank == 0) {
     f = fopen(argv[8], "wb");
     fprintf(f, "P6\n%d %d\n255\n", disp_width, disp_height);
-    fwrite(image, 3, disp_width * disp_height, f);
+    fwrite(final_image, 3, disp_width * disp_height, f);
     fclose(f);
-    free(image);
+    free(final_image);
   }
 
   free(allocation);

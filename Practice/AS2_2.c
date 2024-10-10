@@ -100,7 +100,7 @@ int main(int argc, char *argv[]) {
       memcpy(image + 3 * disp_width * y, allocation, 3 * disp_width);
       for (int src = 1; src < world_size; src++) {
         MPI_Recv(image + 3 * disp_width * (y + src), 3 * disp_width,
-                 MPI_UNSIGNED_CHAR, src, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE);
+                 MPI_UNSIGNED_CHAR, src, 0, MPI_COMM_WORLD, 0);
       }
     } else {
       MPI_Send(allocation, 3 * disp_width, MPI_UNSIGNED_CHAR, 0, 0,
