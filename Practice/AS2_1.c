@@ -119,12 +119,12 @@ int main(int argc, char *argv[]) {
     for (int source = 1; source < world_size; source++) {
       MPI_Recv(final_image +
                    source * 3 * disp_width * (disp_height / world_size),
-               3 * disp_width * (disp_height / world_size), MPI_UNSIGNED_CHAR,
-               source, 0, MPI_COMM_WORLD, 0);
+               3 * disp_width * (disp_height / world_size), MPI_CHAR, source, 0,
+               MPI_COMM_WORLD, 0);
     }
   } else {
-    MPI_Send(allocation, 3 * disp_width * (disp_height / world_size),
-             MPI_UNSIGNED_CHAR, 0, 0, MPI_COMM_WORLD);
+    MPI_Send(allocation, 3 * disp_width * (disp_height / world_size), MPI_CHAR,
+             0, 0, MPI_COMM_WORLD);
   }
 
   if (proc_rank == 0) {
