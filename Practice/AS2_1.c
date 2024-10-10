@@ -2,13 +2,25 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/time.h>
 #include <time.h>
+
+void printTime(int rank, struct timeval t1, struct timeval t2) {
+  long long l;
+  long millis;
+  l = (t2.tv_sec * 1000000 + t2.tv_usec) - (t1.tv_sec * 1000000 + t1.tv_usec);
+  millis = l / 1000;
+  printf("%d: (%ld:%d -> %ld:%d (%ld ms)\n", rank, t1.tv_sec, t1.tv_usec,
+         t2.tv_sec, t2.tv_usec, millis);
+}
 
 int main(int argc, char *argv[]) {
   clock_t start_time, end_time;
   double cpu_time_used;
 
   start_time = clock();
+  struct timeval t1, t2;
+  gettimeofday(&t1, NULL);
 
   int disp_width, disp_height;
   float real_min, real_max, imag_min, imag_max, scale_real, scale_imag;
@@ -133,6 +145,9 @@ int main(int argc, char *argv[]) {
   if (proc_rank == 0) {
     printf("Time taken: %f seconds\n", cpu_time_used);
   }
+
+  gettimeofday(&t2, NULL);
+  printTime(proc_rank, t1, t2);
 
   return 0;
 }
