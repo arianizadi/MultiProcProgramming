@@ -49,20 +49,25 @@ int main(int argc, char *argv[]) {
   max = 256;
 
   MPI_Init(&argc, &argv);
-  int rank, size;
-  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-  MPI_Comm_size(MPI_COMM_WORLD, &size);
+  int proc_rank, world_size;
+  MPI_Comm_rank(MPI_COMM_WORLD, &proc_rank);
+  MPI_Comm_size(MPI_COMM_WORLD, &world_size);
 
-  printf("Processor %d of %d\n", rank, size);
+  printf("Processor %d of %d\n", proc_rank, world_size);
 
-  int strip_height = disp_height / size;
-  int start_y = rank * strip_height;
-  int end_y = (rank == size - 1) ? disp_height : start_y + strip_height;
+  int allocation_height = disp_height / world_size;
+  int start_y = proc_rank * allocation_height;
+  int end_y = 0;
+  if (proc_rank == world_size - 1) {
+    end_y = disp_height;
+  } else {
+    end_y = start_y + allocation_height;
+  }
 
-  unsigned char *strip = (unsigned char *)malloc(3 * disp_width * strip_height *
-                                                 sizeof(unsigned char));
+  unsigned char *allocation = (unsigned char *)malloc(
+      3 * disp_width * allocation_height * sizeof(unsigned char));
   unsigned char *image = NULL;
-  if (rank == 0) {
+  if (proc_rank == 0) {
     image = (unsigned char *)malloc(3 * disp_width * disp_height *
                                     sizeof(unsigned char));
   }
@@ -86,32 +91,33 @@ int main(int argc, char *argv[]) {
         lengthsq = temp + temp2;
         count++;
       } while ((lengthsq < 4.0) && (count < max));
-      strip[3 * ((y - start_y) * disp_width + x) + 0] = map[0][count];
-      strip[3 * ((y - start_y) * disp_width + x) + 1] = map[1][count];
-      strip[3 * ((y - start_y) * disp_width + x) + 2] = map[2][count];
+      allocation[3 * ((y - start_y) * disp_width + x) + 0] = map[0][count];
+      allocation[3 * ((y - start_y) * disp_width + x) + 1] = map[1][count];
+      allocation[3 * ((y - start_y) * disp_width + x) + 2] = map[2][count];
     }
   }
 
-  printf("Processor %d done\n", rank);
+  printf("Processor %d done\n", proc_rank);
 
-  if (rank == 0) {
+  if (proc_rank == 0) {
     image = (unsigned char *)malloc(3 * disp_width * disp_height *
                                     sizeof(unsigned char));
   }
 
-  if (rank != 0) {
-    MPI_Send(strip, 3 * disp_width * strip_height, MPI_UNSIGNED_CHAR, 0, 0,
-             MPI_COMM_WORLD);
-  } else {
-    memcpy(image, strip, 3 * disp_width * strip_height * sizeof(unsigned char));
-    for (int source = 1; source < size; source++) {
-      MPI_Recv(image + source * 3 * disp_width * strip_height,
-               3 * disp_width * strip_height, MPI_UNSIGNED_CHAR, source, 0,
+  if (proc_rank == 0) {
+    memcpy(image, allocation,
+           3 * disp_width * allocation_height * sizeof(unsigned char));
+    for (int source = 1; source < world_size; source++) {
+      MPI_Recv(image + source * 3 * disp_width * allocation_height,
+               3 * disp_width * allocation_height, MPI_UNSIGNED_CHAR, source, 0,
                MPI_COMM_WORLD, MPI_STATUS_IGNORE);
     }
+  } else {
+    MPI_Send(allocation, 3 * disp_width * allocation_height, MPI_UNSIGNED_CHAR,
+             0, 0, MPI_COMM_WORLD);
   }
 
-  if (rank == 0) {
+  if (proc_rank == 0) {
     f = fopen(argv[8], "wb");
     fprintf(f, "P6\n%d %d\n255\n", disp_width, disp_height);
     fwrite(image, 3, disp_width * disp_height, f);
@@ -119,12 +125,12 @@ int main(int argc, char *argv[]) {
     free(image);
   }
 
-  free(strip);
+  free(allocation);
   MPI_Finalize();
 
   end_time = clock();
   cpu_time_used = ((double)(end_time - start_time)) / CLOCKS_PER_SEC;
-  if (rank == 0) {
+  if (proc_rank == 0) {
     printf("Time taken: %f seconds\n", cpu_time_used);
   }
 
